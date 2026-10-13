@@ -5,7 +5,7 @@ Dokumentasi dan laporan tugas praktikum Minggu 3 mata kuliah Pemrograman Mobile.
 ## Identitas Mahasiswa
 
 - **Nama:** Reny Ambarwati
-- **NIM:** 244107020049
+- **NIM:** 244107020066
 - **Kelas:** TI-3F
 - **Mata Kuliah:** Pemrograman Mobile
 
@@ -15,26 +15,14 @@ Dokumentasi dan laporan tugas praktikum Minggu 3 mata kuliah Pemrograman Mobile.
 
 ### Deskripsi Implementasi
 
-Pada praktikum pertama, saya mempelajari dasar navigasi di Flutter serta beralih dari mekanisme imperatif bawaan (Navigator 1.0) ke routing deklaratif menggunakan package `go_router`:
-
 - **Kelemahan Navigator 1.0**: Penggunaan `Navigator.push` dan `MaterialPageRoute` membuat alur navigasi sulit diatur saat aplikasi membesar, rawan terjadi duplikasi logika perpindahan, tidak mendukung deep linking bawaan web/mobile secara bersih, serta penanganan rute terlindungi (guard/redirect) tersebar di banyak tempat.
 - **Konfigurasi `GoRouter`**: Didefinisikan secara terpusat dengan `MaterialApp.router` dan parameter `routerConfig`. Menggunakan rute utama `/` (`HomePage`) dan sub-rute berparameter `detail/:id` (`DetailPage`).
 - **Path Parameter**: Nilai parameter URL dinamis diakses secara aman lewat `state.pathParameters['id']!`.
 - **Perpindahan Halaman**: Menggunakan `context.go('/detail/${index + 1}')` untuk berpindah ke rute detail. Tombol back sistem otomatis mengenali hierarki tumpukan rute.
 
-### Tangkapan Layar
-
-| Halaman Utama (Home List) | Halaman Detail dengan Path Parameter |
-| :---: | :---: |
-| ![Praktikum 1 Home](screenshots/praktikum1_home.png) | ![Praktikum 1 Detail](screenshots/praktikum1_detail.png) |
-
----
-
 ## Praktikum 2: State Management dengan Riverpod
 
 ### Deskripsi Implementasi
-
-Pada praktikum kedua, saya mengimplementasikan pengelolaan state global aplikasi ToDo menggunakan package `flutter_riverpod`:
 
 - **Mengapa State Management Diperlukan**: Mengandalkan `setState` hanya efektif untuk state lokal dalam satu widget. Ketika state harus dibagikan antar berbagai halaman atau bertahan saat widget di-unmount, mengangkat state ke parent teratas (lifting state up) menyebabkan masalah *prop drilling* yang rumit. Riverpod memindahkan state keluar dari widget tree sehingga logika mudah diuji, compile-safe, dan konsisten terhadap konsep UI deklaratif ($UI = f(state)$).
 - **`ProviderScope`**: Membungkus root widget aplikasi (`runApp(const ProviderScope(child: MyApp()))`) sebagai kontainer global penyimpan seluruh state provider.
@@ -42,19 +30,9 @@ Pada praktikum kedua, saya mengimplementasikan pengelolaan state global aplikasi
 - **`TodoListNotifier` & `NotifierProvider`**: Mewarisi kelas `Notifier<List<Todo>>` yang memuat logika manipulasi data (`add`, `toggle`, `remove`).
 - **`ConsumerWidget`**: Widget membaca state menggunakan `ref.watch(todoListProvider)` di dalam method `build()`, dan memanggil method mutasi menggunakan `ref.read(todoListProvider.notifier)` di dalam event callback.
 
-### Tangkapan Layar
-
-| Kondisi Kosong (Empty State) | Dialog Tambah Tugas Baru | Daftar Tugas Terisi & Ceklis |
-| :---: | :---: | :---: |
-| ![Praktikum 2 Empty](screenshots/praktikum2_empty.png) | ![Praktikum 2 Dialog](screenshots/praktikum2_add_dialog.png) | ![Praktikum 2 List](screenshots/praktikum2_list.png) |
-
----
-
 ## Praktikum 3: AsyncValue (Loading, Error, Success)
 
 ### Deskripsi Implementasi
-
-Pada praktikum ketiga, saya menerapkan penanganan state asinkron untuk operasi I/O (seperti request API atau pembacaan database) menggunakan fitur `AsyncValue` dari Riverpod:
 
 - **Masalah Pendekatan Manual Tiga Boolean**: Mengelola status asinkron dengan variabel manual (`isLoading`, `hasError`, `data`) rawan bug inkonsistensi (misal `isLoading == true` bersamaan dengan `hasError == true`).
 - **`AsyncNotifier` & `AsyncValue<T>`**: Riverpod memodelkan ketiga kemungkinan tersebut dalam satu tipe data terpadu: `AsyncLoading`, `AsyncError`, dan `AsyncData`.
@@ -64,19 +42,9 @@ Pada praktikum ketiga, saya menerapkan penanganan state asinkron untuk operasi I
   - `error`: Menampilkan ikon peringatan, pesan kegagalan, dan tombol *Coba lagi* yang mengeksekusi `ref.invalidate(provider)`.
   - `data`: Menampilkan data produk/statistik yang telah berhasil diambil.
 
-### Tangkapan Layar
-
-| State Loading (Spinner) | State Error & Tombol Retry | State Success (Data Berhasil) |
-| :---: | :---: | :---: |
-| ![Praktikum 3 Loading](screenshots/praktikum3_loading.png) | ![Praktikum 3 Error](screenshots/praktikum3_error.png) | ![Praktikum 3 Success](screenshots/praktikum3_success.png) |
-
----
-
 ## Tugas Utama: Aplikasi ToDo & Statistik Lengkap
 
 ### Deskripsi Implementasi
-
-Aplikasi ToDo dikembangkan secara komprehensif dengan menyatukan seluruh materi navigasi GoRouter, state management Riverpod, serta visualisasi asinkron AsyncValue:
 
 1. **Struktur Multi-page dengan GoRouter**:
    - `/`: Halaman utama daftar tugas (`TodoPage`).
@@ -91,11 +59,7 @@ Aplikasi ToDo dikembangkan secara komprehensif dengan menyatukan seluruh materi 
 
 | Halaman Utama Tugas | Filter Tugas Aktif | Rincian Tugas (Detail Page) |
 | :---: | :---: | :---: |
-| ![Tugas Utama Todos](screenshots/tugas_utama_todos.png) | ![Tugas Utama Filter](screenshots/tugas_utama_filter.png) | ![Tugas Utama Detail](screenshots/tugas_utama_detail.png) |
-
-| Statistik: Loading | Statistik: Sukses (Data Riil) | Statistik: Error & Retry |
-| :---: | :---: | :---: |
-| ![Stats Loading](screenshots/tugas_utama_stats_loading.png) | ![Stats Success](screenshots/tugas_utama_stats_success.png) | ![Stats Error](screenshots/tugas_utama_stats_error.png) |
+| ![Tugas Utama Todos](screenshot/1_daftar_tugas_todo.png) | ![Statistik](screenshot/3_statistik_aktivitas.png) | ![Tugas Utama Detail](screenshot/2_detail_tugas.png) |
 
 ---
 
@@ -113,18 +77,14 @@ Aplikasi ToDo dikembangkan secara komprehensif dengan menyatukan seluruh materi 
 3. **Integrasi Navigasi GoRouter dengan `NavigationBar`**:
    - Menerapkan `ShellRoute` pada `lib/router/app_router.dart` dengan wrapper `ScaffoldWithNavBar`.
    - Tab navigasi bawah mengontrol rute `/` dan `/stats` secara terpusat tanpa reload state yang tidak perlu.
-4. **Kerapian Kode & Standar Linter (`flutter analyze`)**:
-   - Dilakukan verifikasi statis kode, menghasilkan **0 issues / warnings**.
 
-![Hasil flutter analyze](screenshots/flutter_analyze.png)
+![Hasil flutter analyze](screenshot/flutter_analyze.png)
 
 ---
 
 ## Testing
 
 ### Pengujian Kode yang Diterapkan
-
-Sesuai instruksi dan panduan codelab Minggu 3, pengujian difokuskan pada dua aspek utama:
 
 1. **Unit Test Notifier (`test/unit_test.dart`)**:
    - Sesuai requirement AI Challenge: *"Berikan unit test untuk notifier-nya"*.
@@ -137,7 +97,7 @@ Sesuai instruksi dan panduan codelab Minggu 3, pengujian difokuskan pada dua asp
 
 Hasil eksekusi `flutter test` menunjukkan seluruh test lulus dengan sempurna (**All tests passed!**):
 
-![Hasil flutter test](screenshots/flutter_test.png)
+![Hasil flutter test](screenshot/flutter_test.png)
 
 ---
 

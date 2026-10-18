@@ -1,24 +1,10 @@
 # Minggu 4: Networking & REST API
-
-Laporan tugas praktikum Minggu 4 mata kuliah Pemrograman Mobile, mengikuti
-codelab resmi [Minggu 4 — Networking & REST API](https://jti-polinema.github.io/flutter-codelab/04-minggu-4-networking-rest-api/index.html)
-(JTI Polinema) serta *Mini Project / Industry Challenge* di dalamnya.
-
-Aplikasi mengambil data dari REST API publik
-[JSONPlaceholder](https://jsonplaceholder.typicode.com) (`GET /posts`,
-`GET /posts/{id}`, `GET /comments?postId={id}`), memetakannya ke model Dart
-yang aman null, lalu menampilkannya lewat **repository + Riverpod** dengan
-penanganan state *loading, error, empty,* dan *success*, ditutup dengan
-**pagination infinite scroll**.
-
 ## Identitas Mahasiswa
 
 - **Nama:** Reny Ambarwati
 - **NIM:** 244107020066
 - **Kelas:** TI-3F
 - **Mata Kuliah:** Pemrograman Mobile
-
----
 
 ## Tujuan Pembelajaran
 
@@ -71,23 +57,6 @@ penanganan state *loading, error, empty,* dan *success*, ditutup dengan
 └── README.md
 ```
 
-> Kode yang dapat dijalankan berada di subfolder `week4_api/`. Folder `lib/`
-> dan `test/` di root berisi salinan final untuk dokumentasi portofolio,
-> mengikuti konvensi minggu-minggu sebelumnya.
-
-## Alur Data
-
-```
-UI (ConsumerWidget) --watch--> Provider (AsyncValue)
-Provider --panggil--> Repository --pakai--> Dio --HTTP--> REST API
-```
-
-UI **tidak pernah** memanggil Dio langsung. Repository adalah satu-satunya
-pintu ke API dan membiarkan exception naik, sehingga provider mengubahnya
-menjadi `AsyncError` secara otomatis.
-
----
-
 ## Langkah 1 — Model data dengan `fromJson` aman null
 
 `Post` dan `Comment` memakai cast defensif, sehingga field yang hilang,
@@ -102,19 +71,6 @@ factory Post.fromJson(Map<String, dynamic> json) => Post(
     );
 ```
 
-**Output (test edge case yang saya tambahkan):**
-
-```
-+5: test/post_test.dart    : fromJson aman terhadap field yang hilang
-+1: test/comment_test.dart : Comment.fromJson aman terhadap field yang hilang
-+2: test/comment_test.dart : Comment.fromJson aman terhadap field bertipe salah
-```
-
-> **Catatan verifikasi:** pola asli codelab `(json['x'] as num?)` ternyata
-> masih crash ketika server mengirim `"postId": "2"` (String) — dibuktikan
-> oleh test field bertipe salah. Karena itu saya menambahkan helper
-> `asInt`/`asString` di `lib/data/json_utils.dart`.
-
 ## Langkah 2 — Konfigurasi Dio terpusat
 
 Seluruh konfigurasi jaringan hidup di `api_client.dart`:
@@ -128,32 +84,6 @@ final dio = Dio(BaseOptions(
 ));
 dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: false));
 ```
-
-**Output (log `LogInterceptor` di console browser saat aplikasi berjalan):**
-
-```
-*** Request ***
-uri: http://127.0.0.1:5051/posts?_page=1&_limit=10
-method: GET
-responseType: ResponseType.json
-followRedirects: true
-connectTimeout: 0:00:10.000000
-receiveTimeout: 0:00:10.000000
-headers:
- Accept: application/json
-```
-
-Ketika server dimatikan, interceptor yang sama melaporkan error teknisnya:
-
-```
-*** DioException ***:
-uri: http://127.0.0.1:5051/posts?_page=1&_limit=10
-DioException [connection error]: The connection errored: ...
-```
-
-`baseUrl` juga bisa ditimpa lewat `--dart-define` untuk menguji skenario error
-tanpa mengubah kode (lihat bagian *Uji Tiga Skenario Error*).
-
 ## Langkah 3 — Repository sebagai pintu data
 
 `PostRepository` menyediakan `fetchPosts()`, `fetchPost(id)`, dan
@@ -170,13 +100,6 @@ final dan tidak menggantung saat diuji.
 `friendlyErrorMessage()` memetakan `timeout`, `connectionError`, `404`,
 `401/403`, dan `5xx` ke bahasa manusia.
 
-**Output (`flutter test -r expanded`, lulus semua):**
-
-```
-+6: test/post_test.dart     : friendlyErrorMessage untuk connection error
-+2: test/comment_test.dart  : friendlyErrorMessage memetakan 404 ke pesan ramah
-+3: test/comment_test.dart  : friendlyErrorMessage memetakan timeout ke pesan ramah
-```
 
 ## Langkah 5 & 6 — UI loading, error, empty, success
 
@@ -208,26 +131,11 @@ Future<List<Post>> fetchPostsPage({required int page, int limit = 10}) async {
 `error` dalam satu objek immutable, sehingga data lama tetap tampil ketika
 halaman berikutnya gagal.
 
-**Guard penting:** `if (state.isLoadingMore || !state.hasMore) return;`
-mencegah request ganda dan menghentikan request saat data habis.
-
 ## Langkah 9 — UI infinite scroll
 
 `ScrollController` memicu `loadNextPage()` saat `extentAfter < 200`
 (200px sebelum ujung list), dan item footer menampilkan indikator loading
 atau teks "Semua data termuat.".
-
-**Output (pengujian manual di layout mobile 390×844, menemukan bug):**
-10 item pertama (10 × ±56px) **muat semua** di layar sehingga
-`maxScrollExtent == 0`, `pixels` tidak pernah berubah, dan scroll listener
-tidak pernah terpicu — indikator di footer berputar tanpa pernah memuat
-halaman berikutnya.
-
-**Perbaikan:** ditambahkan pemeriksaan pasca-frame `_loadIfViewportNotFull()`
-yang berjalan setelah `build`, memakai kondisi yang sama
-(`_controller.position.extentAfter < 200`) sehingga halaman berikutnya ikut
-termuat otomatis ketika daftar belum memenuhi layar. Guard
-`isLoadingMore`/`hasMore` tetap berlaku, jadi tidak ada request ganda.
 
 ```dart
 void _loadIfViewportNotFull() {
@@ -239,9 +147,6 @@ void _loadIfViewportNotFull() {
   }
 }
 ```
-
-**Output:** halaman 1 → 10 termuat otomatis, lalu scroll menambah halaman 2, 3,
-… sampai halaman 10 (100 post) dengan indikator "Semua data termuat.".
 
 | Inifinite scroll (halaman 2–3 tampil) | Akhir data (100 post) |
 |---|---|
@@ -257,21 +162,13 @@ void _loadIfViewportNotFull() {
 | 2 | Koneksi terputus | `flutter run ... --dart-define=API_BASE_URL=http://127.0.0.1:5051` lalu mock server dimatikan (persis seperti mematikan internet/mode pesawat) | "Tidak dapat terhubung ke server. Periksa internet Anda." + tombol **Coba lagi** |
 | 3 | `baseUrl` salah / server gagal | Mock server sengaja membalas `500 Internal Server Error` pada `GET /posts?_page=...` | "Server bermasalah (500). Coba lagi nanti." + tombol **Coba lagi** |
 
-Ketiga hasil tersebut diverifikasi juga oleh unit test `friendlyErrorMessage`
-untuk `connectionError`, `receiveTimeout`, dan `badResponse` (404/500) tanpa
-menyentuh jaringan.
 
 ![State error koneksi dan tombol coba lagi](screenshots/04-error.png)
 
 ![State error server 500 dan tombol coba lagi](screenshots/09-server-error.png)
 
-Skenario **empty** diuji dengan mock lokal yang membalas `[]`
-(`MOCK_MODE=empty`) pada `GET /posts`:
-
 ![State empty](screenshots/05-empty.png)
 
-Skenario **loading** ditangkap saat permintaan `GET /posts` sedang berjalan
-(menggunakan mock `MOCK_MODE=delay` bila ingin durasi yang lebih panjang):
 
 ![State loading](screenshots/01-loading.png)
 
@@ -291,11 +188,10 @@ Skenario **loading** ditangkap saat permintaan `GET /posts` sedang berjalan
 
 ![Halaman detail post + komentar](screenshots/06-detail.png)
 
-Halaman daftar penuh (`/all`) untuk perbandingan state success/empty:
+
 
 ![Daftar penuh 100 post](screenshots/07-all-posts.png)
 
----
 
 ## AI Prompt Challenge
 
@@ -313,112 +209,12 @@ Ringkasan perbaikan terhadap keluaran AI:
 
 ## Tangkapan Layar
 
-Semua screenshot diambil dengan layout mobile 390×844 memakai
-`tool/mobile_harness.html` (lihat bagian *Cara Menjalankan*).
-
 | | | |
 |---|---|---|
 | ![Loading](screenshots/01-loading.png) **01 — Loading** | ![Success](screenshots/02-success.png) **02 — Success** | ![Error koneksi](screenshots/04-error.png) **04 — Error koneksi** |
 | ![Pagination](screenshots/03-pagination.png) **03 — Pagination (halaman 2–3)** | ![Empty](screenshots/05-empty.png) **05 — Empty** | ![Server error](screenshots/09-server-error.png) **09 — Server error 500** |
 | ![Detail](screenshots/06-detail.png) **06 — Detail + komentar** | ![Semua data termuat](screenshots/08-all-loaded.png) **08 — Semua data termuat** | ![Daftar penuh](screenshots/07-all-posts.png) **07 — Daftar penuh `/all`** |
 
----
-
-## Testing
-
-```sh
-cd week4_api
-flutter analyze
-flutter test
-```
-
-**Output `flutter analyze`:**
-
-```
-Analyzing week4_api...
-No issues found! (ran in 6.0s)
-```
-
-**Output `flutter test` (13 test lulus, tanpa HTTP sungguhan):**
-
-```
-$ flutter test -r expanded
-
-00:00 +0: week4_api/test/comment_test.dart : Comment.fromJson aman terhadap field yang hilang
-00:00 +1: week4_api/test/comment_test.dart : Comment.fromJson aman terhadap field bertipe salah
-00:00 +2: week4_api/test/comment_test.dart : friendlyErrorMessage memetakan 404 ke pesan ramah
-00:00 +3: week4_api/test/comment_test.dart : friendlyErrorMessage memetakan timeout ke pesan ramah
-00:00 +4: week4_api/test/comment_test.dart : provider komentar error dengan repository palsu
-00:00 +5: week4_api/test/post_test.dart    : fromJson aman terhadap field yang hilang
-00:00 +6: week4_api/test/post_test.dart    : friendlyErrorMessage untuk connection error
-00:00 +7: week4_api/test/post_test.dart    : provider sukses dengan repository palsu
-00:00 +8: week4_api/test/post_test.dart    : provider error dengan repository palsu
-00:00 +9: week4_api/test/widget_test.dart  : PostTile menampilkan id, judul, dan isi post
-00:01 +10: week4_api/test/widget_test.dart : PagedPostPage menampilkan data dari repository palsu
-00:01 +11: week4_api/test/widget_test.dart : PagedPostPage menampilkan pesan error + tombol retry
-00:01 +12: week4_api/test/widget_test.dart : PagedPostsState default: masih loading lebih & punya data
-00:01 +13: All tests passed!
-```
-
-> Path absolut pada keluaran asli dipotong menjadi `week4_api/test/...`;
-> penomoran `+n` adalah penghitung test yang sudah selesai.
-
-Test memakai `FakePostRepository` / `FakeCommentRepository` (override provider),
-sehingga memori menjamin tidak ada request HTTP sungguhan di dalam test.
-
----
-
-## Cara Menjalankan
-
-```sh
-cd week4_api
-flutter pub get
-flutter run            # buka di Chrome/Emerald/edge, atur ukuran ke mobile
-```
-
-Aplikasi membuka halaman **Posts Paged** (`/`). Ikon daftar di kanan atas
-membuka daftar penuh (`/all`), dan menekan sebuah post membuka detail
-(`/post/:id`).
-
-**Uji skenario error/empty/loading tanpa mengubah kode:**
-
-```sh
-# 1. mock lokal, lalu matikan mock saat aplikasi sudah jalan → error koneksi
-#    (persis seperti mematikan internet / mode pesawat)
-$env:MOCK_MODE="mixed"; $env:MOCK_PORT="5051"; python tool\mock_api.py
-flutter run -d web-server --web-port 8081 --dart-define=API_BASE_URL=http://127.0.0.1:5051
-#    mode "mixed": GET /posts?_page=... membalas 500, GET /posts membalas []
-
-# 2. port tertutup (alternatif) → error koneksi
-flutter run -d web-server --web-port 8081 --dart-define=API_BASE_URL=http://127.0.0.1:9
-
-# 3. mock lambat (8 detik) → state loading; mock kosong → state empty
-$env:MOCK_MODE="delay"; $env:MOCK_DELAY="8"; python tool\mock_api.py
-$env:MOCK_MODE="empty"; python tool\mock_api.py
-```
-
-**Mengambil screenshot layout mobile** (dipakai untuk dokumentasi ini):
-
-```sh
-python -m http.server 8080 --bind 127.0.0.1     # dari folder week4_api/tool
-flutter run -d web-server --web-port 8081       # dari folder week4_api
-# lalu buka http://127.0.0.1:8080/mobile_harness.html?src=http://127.0.0.1:8081/
-```
-
-`mobile_harness.html` membungkus aplikasi dalam iframe 390×844 sehingga
-Flutter web merender layout mobile, bukan layout desktop.
-
----
-
-## Checklist Verifikasi Mandiri
-
-- [x] UI tidak memanggil Dio langsung; semua akses data lewat repository + provider.
-- [x] Empat state tampil benar: loading, error (+ retry), empty, success.
-- [x] Pagination: data bertambah saat scroll, tidak ada request ganda, ada indikator akhir data.
-- [x] `flutter analyze` tanpa issue dan semua test lulus (13 test).
-- [x] Hasil AI diverifikasi dan didokumentasikan pada folder `docs/`.
-
----
 
 ## Refleksi
 
@@ -447,8 +243,6 @@ lalu memilih mempertahankan data lama saat gagal) atau di `loadNextPage()`
 ### 4. Bagian mana dari hasil AI yang Anda perbaiki, dan mengapa?
 
 `Dio` dibuat ulang di dalam repository (diganti `createDio()` terpusat),
-`fromJson` hanya aman null tapi crash pada tipe salah (ditambah `asInt`/
-`asString`), family notifier tidak bisa membaca `postId` (diperbaiki lewat
-konstruktor), dan test AI hanya happy path (ditambah 404, timeout, field hilang,
+`fromJson` hanya aman null tapi crash pada tipe salah, family notifier tidak bisa membaca `postId`, dan test AI hanya happy path (ditambah 404, timeout, field hilang,
 serta provider error dengan repository palsu). Detailnya di
 [`docs/ai_challenge.md`](docs/ai_challenge.md).

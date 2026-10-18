@@ -9,20 +9,6 @@
 
 ---
 
-## Fitur Utama
-
-- **CRUD catatan persisten** — tabel `notes` di SQLite; daftar selalu diurutkan
-  `updated_at DESC` (terbaru di atas) dan bertahan setelah aplikasi ditutup.
-- **Preferensi key-value** — toggle tema gelap/terang (`dark_mode`) dan catatan
-  waktu terakhir dibuka (`last_opened_at`) di SharedPreferences.
-- **Offline-first** — cache-first read `GET /posts` (endpoint Minggu 4),
-  antrean sinkronisasi berbasis `dirty`, tombol **Sinkronkan** dengan laporan
-  hasil, dan toggle **Paksa offline** untuk simulasi deterministik.
-- **Empat state UI** — loading, error (+ tombol coba lagi), empty, success
-  untuk data lokal maupun data API.
-- **Halaman detail `/note/:id`** — membaca dari repository lokal, bukan dari
-  state halaman daftar.
-
 ## Tujuan Pembelajaran
 
 1. Menjelaskan perbedaan penyimpanan key-value, relasional, dan NoSQL di perangkat.
@@ -90,25 +76,7 @@
 └── README.md
 ```
 
-> Kode yang dapat dijalankan berada di subfolder `week5_offline_notes/`.
-> Folder `lib/` dan `test/` di root berisi salinan final untuk dokumentasi
-> portofolio, mengikuti konvensi minggu-minggu sebelumnya.
-
-## Alur Data
-
-```
-UI (ConsumerWidget) --watch--> Provider (AsyncValue)
-Provider --panggil--> NoteRepository / PrefsRepository --CRUD--> SQLite / SharedPreferences
-Provider --cache-first--> sync.dart --GET /posts--> Dio (JSONPlaceholder)
-syncNotes(dirty) --simulasi server sukses--> markAllSynced() → dirty = 0
-```
-
-UI **tidak pernah** memanggil SQLite, SharedPreferences, maupun Dio secara
-langsung — hanya membaca provider. Repository adalah satu-satunya pintu data,
-dan `openDb`-nya bisa disuntik sehingga seluruh test berjalan **tanpa database
-sungguhan**.
-
-### Pemilihan penyimpanan (ringkas)
+### Pemilihan penyimpanan
 
 | Kebutuhan | Pilihan | Alasan singkat |
 |---|---|---|
@@ -173,19 +141,9 @@ class DarkModeNotifier extends AsyncNotifier<bool> {
 }
 ```
 
-`MaterialApp` membaca `darkModeProvider` di `main.dart`, jadi hasil toggle
-langsung mengubah tema dan **bertahan setelah aplikasi dibuka ulang** (tersimpan
-di SharedPreferences, bukan state sementara).
-
 **Output (tema gelap tersimpan & dipakai ulang —
 [`05-tema-gelap.png`](screenshots/05-tema-gelap.png)):** setelah toggle *Tema
 gelap* di Pengaturan, halaman Catatan dirender penuh dalam skema gelap.
-
-> **Catatan deviasi kecil:** modul menempatkan `prefsRepositoryProvider` dan
-> `darkModeProvider` di dalam `settings_page.dart`. Karena tema juga
-> dibutuhkan `MaterialApp` di `main.dart`, semua provider dipusatkan ke
-> `lib/data/providers.dart` agar tidak terjadi import melingkar antar-halaman.
-> Komentar penjelas disertakan tepat di file tersebut.
 
 ---
 
@@ -216,13 +174,6 @@ class Note {
 }
 ```
 
-**Output (`flutter test test/note_test.dart`, 2 test pertama lulus):**
-
-```
-00:00 +0: fromMap aman terhadap field yang hilang
-00:00 +1: flag dirty bertahan pada serialisasi
-```
-
 ### Langkah B2 — Pembuka database
 
 Satu fungsi pembuka untuk seluruh repository (`lib/data/local/db.dart`), dengan
@@ -239,23 +190,6 @@ Future<Database> openNotesDb() async {
   return openDatabase(p.join(dir, notesDbName), version: 1, onCreate: _onCreate);
 }
 ```
-
-**Output (persiapan web — hanya dijalankan sekali sebelum build):**
-
-```sh
-dart run sqflite_common_ffi_web:setup
-```
-
-```
-created: web/sqflite_sw.js (264107 bytes)
-created: web/sqlite3.wasm (748686 bytes)
-```
-
-> **Mengapa ada cabang `kIsWeb`?** Mesin praktikum tidak memiliki emulator
-> Android, sedangkan dokumentasi membutuhkan tampilan aplikasi di layout
-> mobile. `sqflite` sendiri tidak mendukung web, jadi di browser factory
-> diganti ke `databaseFactoryFfiWeb` (SQLite-wasm). Di **Android/iOS asli**
-> cabang ini tidak aktif — `sqflite` native dipakai tanpa perubahan kode lain.
 
 ### Langkah B3 — Repository sebagai satu-satunya pintu data
 
@@ -283,26 +217,6 @@ Future<void> markAllSynced() async {
 }
 ```
 
-**Output (log konsol saat CRUD — jejak audit yang bisa dibaca penguji):**
-
-```
-[notes] tambah #1 "Rencana praktikum Senin" → dirty = 1
-[notes] 1 catatan dibaca dari SQLite
-[notes] tambah #2 "Bahan presentasi offline-first" → dirty = 1
-[notes] 2 catatan dibaca dari SQLite
-```
-
-**Output (bukti repository bisa diuji tanpa SQLite — repository palsu):**
-
-```
-00:00 +4: provider sukses dengan repository palsu
-[notes] 1 catatan dibaca dari SQLite
-00:00 +5: provider error dengan repository palsu
-```
-
-Constructor menerima `openDb` yang bisa disuntik, sehingga
-`FakeNoteRepository` (yang `openDb`-nya melempar `UnimplementedError`)
-membuktikan tidak ada database sungguhan yang tersentuh di dalam test.
 
 ### Langkah B4 — Halaman catatan offline (CRUD + badge)
 
@@ -312,27 +226,16 @@ badge "Belum tersinkron" bila `dirty`), baris ringkasan antrean
 FAB **Tulis** untuk menambah catatan lewat dialog, dan tarik-turun untuk
 refresh. Halaman tetap berfungsi penuh saat offline karena semua data lokal.
 
-**Output (screenshot state empty dan tiga catatan kotor):**
+**Output:**
 
 | State empty (database bersih) | Tiga catatan, semua "Belum tersinkron" |
 |---|---|
 | ![State empty](screenshots/01-empty.png) | ![Tiga catatan kotor](screenshots/03-tiga-dirty.png) |
-
-**Output (log pada skenario tiga catatan — `docs/testing.md`):**
-
-```
-[notes] tambah #3 "Daftar periksa rilis" → dirty = 1
-[notes] 3 catatan dibaca dari SQLite
-```
-
 ---
 
 ## Bagian C — Offline-first
 
 ### Langkah C1 — Cache-first read untuk data API
-
-`loadPostsCacheFirst()` di `lib/data/sync.dart` membaca tabel `cached_posts`
-lebih dulu sehingga **UI tidak pernah menunggu jaringan**:
 
 ```dart
 final cached = (await source.readRows()).map(CachedPost.fromRow).toList();
@@ -350,25 +253,9 @@ if (!fresh && onBackgroundRefresh != null) {
 return cached;
 ```
 
-Tiga cabang di atas mencegah dua jebakan klasik: *empty-state* palsu saat
-cache masih kosong, dan *invalidate loop* ketika refresh selesai selalu
-memicu rebuild provider.
-
-**Output (log + screenshot — 100 post tampil meski `forceOffline` aktif):**
-
-```
-[cache] cache kosong → ambil dari jaringan (state loading)
-[cache] refresh jaringan OK → 100 post disimpan
-[offline] forceOffline = true
-[cache] offline → 100 post dari cache lokal
-```
-
 ![Cache-first: 100 post dari cache lokal saat offline](screenshots/08-cache-posts.png)
 
 ### Langkah C2 — Sinkronisasi catatan kotor (dirty)
-
-Karena codelab belum punya backend tulis, "server" disimulasikan dengan
-delay — yang dinilai adalah mekanismenya:
 
 ```dart
 Future<int> syncNotes(NoteRepository repo, {bool offline = false}) async {
@@ -384,32 +271,14 @@ Future<int> syncNotes(NoteRepository repo, {bool offline = false}) async {
 }
 ```
 
-**Output (badge sebelum/sesudah sinkron — bukti mini project butir 4):**
+**Output:**
 
 | Sebelum: antrean 3, badge kotor per baris | Sesudah: "Semua 2 catatan tersinkron", badge 0 |
 |---|---|
 | ![Sebelum sinkron](screenshots/03-tiga-dirty.png) | ![Sesudah sinkron](screenshots/07-sinkron-selesai.png) |
 
-**Output (log `syncNotes`):**
-
-```
-[sync] unggah 2 catatan (simulasi server) ...
-[sync] selesai → dirty = 0 (last-write-wins: Last-Write-Wins (updated_at terbaru menang))
-```
-
-**Aturan konflik:** *last-write-wins* berdasarkan `updated_at`. Aturan ini
-dijadikan konstanta `conflictRule` di `sync.dart`, diuji otomatis
-(`aturan konflik last-write-wins memilih updated_at terbaru`), dan
-ditampilkan di UI (halaman detail + bar antrean) supaya tidak pernah
-"menimpa data secara diam-diam".
 
 ### Langkah C3 — Simulasi offline yang deterministik
-
-Selain mode pesawat sungguhan di HP, aplikasi menyediakan toggle **Paksa
-offline** (`forceOfflineProvider`) di Pengaturan — sesuai saran modul agar
-demo tidak bergantung pada kondisi Wi-Fi kelas.
-
-**Output (observasi skenario offline):**
 
 | Langkah modul | Hasil observasi | Bukti |
 |---|---|---|
@@ -419,10 +288,6 @@ demo tidak bergantung pada kondisi Wi-Fi kelas.
 | `syncNotes` dijalankan saat offline | Antrean ditahan (`0` diunggah), `markAllSynced` tidak dipanggil | test `syncNotes saat offline menahan antrean` → log `[sync] mode offline → 1 catatan tetap antre` |
 
 ![Mode offline aktif: catatan lokal tetap tampil](screenshots/06-offline.png)
-
-Pada HP/emulator asli, mematikan Wi-Fi/mengaktifkan mode pesawat melewati
-jalur kode yang sama (tidak ada data yang dibaca dari jaringan untuk catatan),
-sehingga hasilnya identik dengan toggle di atas.
 
 ---
 
@@ -445,18 +310,9 @@ sehingga hasilnya identik dengan toggle di atas.
 
 ![Halaman detail /note/:id dari repository lokal](screenshots/04-detail.png)
 
-**Temuan tambahan saat dokumentasi:** pada versi awal, FAB *Tulis* berada di
-bawah layar dan **menimpa tombol Sinkronkan** pada layout 390×844. Bar
-antrean dipindah ke atas daftar (`SyncQueueBar` di atas `Expanded`) sehingga
-kedua tombol selalu bisa ditekan — perbaikan terekam di
-[`03-tiga-dirty.png`](screenshots/03-tiga-dirty.png).
-
----
-
 ## AI Prompt Challenge
 
-Dokumentasi lengkap (prompt persis, output awal AI, tabel perbandingan final,
-AI Verification Checklist, dan keputusan akhir) ada di
+Dokumentasi lengkap ada di
 [`docs/ai_challenge.md`](docs/ai_challenge.md).
 
 Ringkasan hasil:
@@ -478,67 +334,12 @@ Ringkasan hasil:
 
 ---
 
-## Testing
-
-```sh
-cd week5_offline_notes
-flutter analyze
-flutter test -r expanded      # 13 test lulus
-```
-
-**Output `flutter analyze`:**
-
-```
-Analyzing week5_offline_notes...
-No issues found! (ran in 5.5s)
-```
-
-**Output `flutter test` (dijalankan per file agar reporter tidak menabrak;
-digabung hasilnya `00:00 +13: All tests passed!`):**
-
-```
-00:00 +0: fromMap aman terhadap field yang hilang
-00:00 +1: flag dirty bertahan pada serialisasi
-00:00 +2: aturan konflik last-write-wins memilih updated_at terbaru
-00:00 +3: copyWith tidak mengubah id
-00:00 +4: provider sukses dengan repository palsu
-[notes] 1 catatan dibaca dari SQLite
-00:00 +5: provider error dengan repository palsu
-00:00 +6: All tests passed!          # test/note_test.dart
-
-00:00 +0: syncNotes menandai semua catatan kotor sebagai sinkron
-[sync] unggah 2 catatan (simulasi server) ...
-[sync] selesai → dirty = 0 (last-write-wins: Last-Write-Wins (updated_at terbaru menang))
-00:00 +1: syncNotes saat offline menahan antrean (dirty tetap ada)
-[sync] mode offline → 1 catatan tetap antre
-00:00 +2: syncNotes dengan antrean kosong tidak menyentuh database
-[sync] antrean kosong, tidak ada yang diunggah
-00:00 +3: cache-first offline: baca cache tanpa memanggil jaringan
-[cache] offline → 1 post dari cache lokal
-00:00 +4: cache-first: kunjungan pertama menunggu jaringan (state loading)
-[cache] cache kosong → ambil dari jaringan (state loading)
-[cache] refresh jaringan OK → 1 post disimpan
-00:00 +5: cache basi memicu refresh di background, UI tetap dapat cache
-[cache] 1 post dari cache lokal (hangat: false)
-[cache] refresh jaringan OK → 1 post disimpan
-00:00 +6: CachedPost dari payload rusak tetap aman
-00:00 +7: All tests passed!          # test/sync_test.dart
-```
-
-Jauh melampaui minimal 2 test yang diminta modul (1 unit test model + 1 test
-provider dengan repository palsu). Semua test berjalan **tanpa SQLite
-sungguhan dan tanpa HTTP** — dibuktikan oleh `FakeNoteRepository` /
-`InMemoryPostCacheSource` yang memblokir akses database. Rincian per test ada
+Rincian per test ada
 di [`docs/testing.md`](docs/testing.md).
 
 ---
 
 ## Tangkapan Layar
-
-Delapan screenshot diambil pada layout mobile **390×844** dengan
-`tool/capture.mjs`. **Satu skenario = satu proses aplikasi → satu screenshot →
-aplikasi ditutup**, sehingga setiap gambar berasal dari start yang bersih
-(database IndexedDB kosong) dan hasilnya deterministik.
 
 | # | Skenario | Yang dibuktikan |
 |---|---|---|
@@ -559,71 +360,6 @@ aplikasi ditutup**, sehingga setiap gambar berasal dari start yang bersih
 
 ---
 
-## Cara Menjalankan
-
-### Aplikasi (Android emulator / perangkat fisik) — jalur produksi
-
-```sh
-cd week5_offline_notes
-flutter pub get
-flutter run            # pilih emulator Android atau HP (USB debugging)
-```
-
-Jalur ini memakai `sqflite` native persis seperti yang dipelajari di modul;
-tidak perlu setup tambahan apa pun.
-
-### Build web untuk dokumentasi (tanpa emulator)
-
-Karena mesin praktikum tidak memiliki emulator Android, aplikasi dibangun
-sekali untuk web (SQLite-wasm + IndexedDB, lihat Langkah B2), lalu disajikan
-secara statis:
-
-```sh
-cd week5_offline_notes
-dart run sqflite_common_ffi_web:setup       # sekali saja
-flutter build web --release
-cd build\web
-python -m http.server 8081 --bind 127.0.0.1
-# buka http://127.0.0.1:8081/?semantics=true
-```
-
-Parameter `?semantics=true` mengaktifkan accessibility tree bawaan Flutter web
-dari awal (`SemanticsBinding.ensureSemantics()` di `main.dart`), dipakai tool
-pemotret untuk menekan tombol secara terprogram.
-
-### Mengambil ulang screenshot (satu per satu)
-
-```sh
-cd week5_offline_notes/tool
-npm install                                    # playwright-core (memakai Edge sistem)
-
-node capture.mjs empty          ..\..\screenshots\01-empty.png
-node capture.mjs pengaturan     ..\..\screenshots\02-pengaturan.png
-node capture.mjs tiga-dirty     ..\..\screenshots\03-tiga-dirty.png
-node capture.mjs detail         ..\..\screenshots\04-detail.png
-node capture.mjs tema-gelap     ..\..\screenshots\05-tema-gelap.png
-node capture.mjs offline        ..\..\screenshots\06-offline.png
-node capture.mjs sinkron-selesai ..\..\screenshots\07-sinkron-selesai.png
-node capture.mjs cache-posts    ..\..\screenshots\08-cache-posts.png
-```
-
-Setiap perintah membuka aplikasi di konteks browser baru (viewport 390×844,
-device scale 2×), menjalankan satu skenario, memotret, lalu menutup
-aplikasi. Log konsol `[notes]`/`[cache]`/`[sync]` ikut tercetak — log yang
-sama dikutip sebagai output di dokumen ini. Skenario `probe`, `probe-dialog`,
-`probe-list`, dan `probe-sync` bersifat diagnostik (mencetak accessibility
-tree, tanpa screenshot).
-
----
-
-## Checklist Verifikasi Mandiri
-
-- [x] UI tidak memanggil SQLite/SharedPreferences langsung; semua lewat repository + provider.
-- [x] Aplikasi penuh berfungsi dalam mode pesawat: baca, tambah, hapus catatan (screenshot `06-offline.png` + test offline sync).
-- [x] Badge dirty akurat sebelum/sesudah sync (`03-tiga-dirty.png` → `07-sinkron-selesai.png`); cache posts tampil tanpa internet (`08-cache-posts.png`).
-- [x] `flutter analyze` tanpa issue dan semua test lulus (13 test).
-- [x] Hasil AI diverifikasi dan didokumentasikan pada folder `docs/`.
-
 ## Pemenuhan Mini Project / Industry Challenge
 
 | Butir modul | Pemenuhan | Bukti |
@@ -635,18 +371,6 @@ tree, tanpa screenshot).
 | 5. Minimal 2 test lulus | 13 test (6 model/provider + 7 sinkronisasi/cache) | [`docs/testing.md`](docs/testing.md) |
 | 6. AI Challenge terdokumentasi | prompt, output awal AI, tabel perbandingan, checklist verifikasi, keputusan final | [`docs/ai_challenge.md`](docs/ai_challenge.md) |
 | 7. Push ke repo portfolio dengan struktur `lib/`, `test/`, `docs/`, `README.md`, `screenshots/` | Struktur folder root sesuai permintaan | daftar folder di atas |
-
----
-
-## Error Umum & Temuan Saat Pengembangan
-
-| Temuan | Penyebab | Penyelesaian |
-|---|---|---|
-| FAB *Tulis* menimpa tombol *Sinkronkan* di layar 390×844 | Keduanya berada di posisi bawah layar | `SyncQueueBar` dipindah ke atas daftar sebelum `Expanded` |
-| Tooltip Material ("Pengaturan", dst.) tertinggal di screenshot | Kursor masih mengeklik tab saat dipotret | Tool pemotret menggeser kursor ke titik netral + jeda 1,2 detik sebelum memotret |
-| Refresh background bisa memicu *loop* invalidate | `invalidate` dari hasil fetch men-trigger rebuild lagi | Hasil refresh ditulis langsung ke `state` (`_settle`), bukan lewat `invalidate` |
-| `flutter test` menampilkan nama test yang tertukar | Dua file test dieksekusi paralel oleh tester Dart | Dokumentasi memakai keluaran per file (`flutter test test/note_test.dart`) |
-| `MissingPluginException` saat menjalankan di web | `sqflite` tidak mendukung web | Factory diganti `databaseFactoryFfiWeb` + `dart run sqflite_common_ffi_web:setup` |
 
 ---
 
@@ -703,15 +427,3 @@ akan menjadi biaya tanpa guna. Rincian perbandingan dan verifikasinya ada di
 [`docs/ai_challenge.md`](docs/ai_challenge.md).
 
 ---
-
-## Referensi Pendukung
-
-- [Codelab resmi Minggu 5 — Local Storage & Offline-First (JTI Polinema)](https://jti-polinema.github.io/flutter-codelab/05-minggu-5-local-storage-offline-first/index.html)
-- [Slide Week 5: Local Storage & Offline First](https://jti-polinema.github.io/flutter-codelab/00-slides/Week_05_Local_Storage_Offline_First.html)
-- [Flutter cookbook: Store key-value data](https://docs.flutter.dev/cookbook/persistence/key-value)
-- [shared_preferences package](https://pub.dev/packages/shared_preferences)
-- [sqflite package](https://pub.dev/packages/sqflite)
-- [sqflite_common_ffi_web package](https://pub.dev/packages/sqflite_common_ffi_web)
-- [Hive package (alternatif NoSQL)](https://pub.dev/packages/hive)
-- [Drift package (alternatif reaktif)](https://pub.dev/packages/drift)
-- [Riverpod: AsyncNotifier dan AsyncValue](https://riverpod.dev/docs/concepts/async_notifiers)

@@ -3,7 +3,6 @@
 Aplikasi pengumuman kampus dengan autentikasi, keamanan token (rotating access/refresh),
 dan simulasi push notification — dimigrasikan dari struktur Week 6 ke **Clean
 Architecture feature-first** sesuai modul
-[Minggu 7](https://jti-polinema.github.io/flutter-codelab/07-minggu-7-clean-architecture/index.html).
 
 - Nama: Reny Ambarwati · NIM: 244107020066 · Kelas: TI-3F · Pemrograman Mobile
 - App ID: `com.renyambar.campus_notify`
@@ -51,15 +50,6 @@ lib/
 └── main.dart                 # bootstrap + dukungan ?semantics=true
 ```
 
-### Pola hasil
-
-- `core/failures.dart`: `typedef Result<T> = ({T? value, Failure? failure})` dengan
-  `success(value)` / `failure(f)`; `sealed class Failure`
-  (Local/Network/Validation/Auth) — tanpa exception di alur utama.
-- Entity memakai record + `copyWith` ala modul; konversi JSON hanya di `data/`.
-- Use case hanya untuk operasi ber-aturan: `Login` (validasi + normalisasi + kontrak dua
-  token), `GetAnnouncement` (validasi id), `RegisterDevice` (validasi token); serta
-  `RefreshSession` yang dipakai interceptor 401.
 
 ## Fitur
 
@@ -70,35 +60,6 @@ lib/
   lihat [`docs/fcm_integration.md`](docs/fcm_integration.md)).
 - Tema krem–cokelat, layout mobile.
 
-## Menjalankan
-
-```bash
-flutter pub get        # ambil dependensi
-flutter analyze        # pastikan "No issues found!"
-flutter test           # unit test use case dengan repository palsu
-flutter run -d chrome  # jalankan aplikasi
-```
-
-Aplikasi berjalan offline penuh (server kampus & push disimulasikan di dalam kode).
-Akun demo: NIM apa pun (10 digit) + password apa pun kecuali `salah`.
-
-### Membangun & menyajikan versi web
-
-```bash
-flutter build web --release
-node tool/serve.mjs                 # menyajikan build/web di http://localhost:8080
-```
-
-### Menangkap screenshot (seperti pada folder `screenshots/`)
-
-```bash
-node tool/serve.mjs                                # terminal 1
-node tool/capture.mjs login screenshots/after_login.png   # terminal 2
-```
-
-Skenario yang tersedia: `login`, `login-gagal`, `beranda`, `push-foreground`,
-`push-detail`, `token-rotasi`, `refresh-401`, `logout`. Tambahkan
-`?semantics=true` pada URL bila ingin pohon semantik (aksesibilitas) ikut tampil.
 
 ## Hasil verifikasi
 
@@ -117,9 +78,6 @@ Test memakai repository palsu (fake) — tanpa HTTP maupun penyimpanan nyata —
 
 ## Before vs After
 
-Kedua versi dijalankan lewat web dengan viewport mobile 390×844 dan dibandingkan
-skenario per skenario: hasil **identik**.
-
 | Skenario | Week 6 (before) | Week 7 (after) |
 | --- | --- | --- |
 | Login valid | `before_login.png` | `after_login.png` |
@@ -131,8 +89,7 @@ skenario per skenario: hasil **identik**.
 | Refresh 401 | `before_refresh_401.png` | `after_refresh_401.png` |
 | Logout | `before_logout.png` | `after_logout.png` |
 
-Citra tersimpan di [`screenshots/`](screenshots). Screenshot FCM dengan Firebase
-sungguhan ditambahkan sendiri setelah mengikuti
+Citra tersimpan di [`screenshots/`](screenshots). 
 [`docs/fcm_integration.md`](docs/fcm_integration.md).
 
 ## Dokumentasi
@@ -141,8 +98,3 @@ sungguhan ditambahkan sendiri setelah mengikuti
   lama → baru, keputusan desain & trade-off, hasil grep.
 - [`docs/fcm_integration.md`](docs/fcm_integration.md) — langkah mengaktifkan FCM
   (menambah dependensi, `FcmPushGateway`, menukar pabrik `createPushGateway()`).
-
-## Referensi
-
-- Modul: <https://jti-polinema.github.io/flutter-codelab/07-minggu-7-clean-architecture/index.html>
-- Kode dasar: folder [`../06-week-6-authentication-security-fcm`](../06-week-6-authentication-security-fcm)

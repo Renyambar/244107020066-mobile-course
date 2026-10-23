@@ -1,14 +1,5 @@
 # Minggu 6: Authentication, Security & FCM
 
-Aplikasi **Campus Notify** mengimplementasikan alur autentikasi lengkap:
-penyimpanan token di *secure storage*, interceptor Dio yang melakukan **refresh
-otomatis sekali saat 401**, guard route dengan GoRouter, serta integrasi
-**Firebase Cloud Messaging (FCM)** — permission, *token lifecycle*
-(`getToken` + `onTokenRefresh` → `POST /devices`), *topic messaging*, deep link
-dari notifikasi pada **tiga app state** (foreground, background, terminated),
-dan prinsip keamanan dasar (token tidak pernah di-log penuh / disimpan di
-`SharedPreferences`).
-
 ## Identitas Mahasiswa
 
 - **Nama:** Reny Ambarwati
@@ -236,20 +227,20 @@ Seluruh screenshot diambil pada layout mobile **390 × 844**.
 
 | # | Berkas | Isi |
 |---|---|---|
-| 1 | `01-login.png` | Halaman login (guard route: belum login selalu ke `/login`) |
-| 2 | `02-login-validasi.png` | Validasi form: email tidak valid + sandi < 6 karakter |
-| 3 | `03-beranda.png` | Beranda setelah login: kartu status, topik, simulator |
-| 4 | `04-token.png` | Permission granted + token **terpotong** + `POST /devices` |
-| 5 | `05-token-rotasi.png` | `onTokenRefresh` → kirim ulang token baru ke backend |
-| 6 | `06-topik-aktif.png` | Topik `pengumuman-kampus` aktif (berlangganan) |
-| 7 | `07-topik-nonaktif.png` | Log `subscribeToTopic` → `unsubscribeFromTopic` |
-| 8 | `08-foreground-banner.png` | Banner in-app muncul saat foreground |
-| 9 | `09-foreground-detail.png` | Klik banner → `/pengumuman/3` |
-| 10 | `10-background-detail.png` | Klik banner background → `/pengumuman/2` |
-| 11 | `11-terminated-detail.png` | `getInitialMessage()` → `/pengumuman/1` |
-| 12 | `12-data-only.png` | Pesan hanya-data: **tanpa banner**, hanya log |
-| 13 | `13-refresh-401.png` | `401 → refresh sekali → retry 200 OK` |
-| 14 | `14-logout.png` | Setelah `Keluar`, guard mengembalikan ke `/login` |
+| 1 | ![before_login](screenshots/01-login.png) | Halaman login (guard route: belum login selalu ke `/login`) |
+| 2 | ![before_login_validasi](screenshots/02-login-validasi.png) | Validasi form: email tidak valid + sandi < 6 karakter |
+| 3 | ![before_beranda](screenshots/03-beranda.png) | Beranda setelah login: kartu status, topik, simulator |
+| 4 | ![before_token](screenshots/04-token.png) | Permission granted + token **terpotong** + `POST /devices` |
+| 5 | ![before_token_rotasi](screenshots/05-token-rotasi.png) | `onTokenRefresh` → kirim ulang token baru ke backend |
+| 6 | ![before_topik_aktif](screenshots/06-topik-aktif.png) | Topik `pengumuman-kampus` aktif (berlangganan) |
+| 7 | ![before_topik_nonaktif](screenshots/07-topik-nonaktif.png) | Log `subscribeToTopic` → `unsubscribeFromTopic` |
+| 8 | ![before_foreground_banner](screenshots/08-foreground-banner.png) | Banner in-app muncul saat foreground |
+| 9 | ![before_foreground_detail](screenshots/09-foreground-detail.png) | Klik banner → `/pengumuman/3` |
+| 10 | ![before_background_detail](screenshots/10-background-detail.png) | Klik banner background → `/pengumuman/2` |
+| 11 | ![before_terminated_detail](screenshots/11-terminated-detail.png) | `getInitialMessage()` → `/pengumuman/1` |
+| 12 | ![before_data_only](screenshots/12-data-only.png) | Pesan hanya-data: **tanpa banner**, hanya log |
+| 13 | ![before_refresh_401](screenshots/13-refresh-401.png) | `401 → refresh sekali → retry 200 OK` |
+| 14 | ![before_logout](screenshots/14-logout.png) | Setelah `Keluar`, guard mengembalikan ke `/login` |
 
 ---
 
